@@ -4,35 +4,38 @@ A mobile-friendly workout logger that stores sessions and exercise history as or
 
 This repository is a clean starter vault. It includes the `Workout Logger` plugin, an exercise library, templates, Bases views, and mobile toolbar defaults. It contains no personal workout history.
 
-## Before you begin
+## Recommended setup: GitHub + Obsync on iOS
 
-1. Download and install the Obsidian app on your computer and/or iPhone.
-2. If you are using iOS for Git sync, download **Obsync** from the App Store.
-3. Open Obsync and link your GitHub account—the account that owns or can access your private workout-vault repository.
+This is the simplest workflow for getting the starter vault onto an iPhone without putting personal workout data in this public repository.
 
-## Important: make your personal copy private
+1. Create a GitHub account if you do not already have one.
+2. Open this repository on GitHub and select **Use this template**.
+3. Create a new repository for yourself, choose a name, and set **Visibility** to **Private**. This private repository is your personal copy.
+4. Download and install the **Obsidian** app and **Obsync** on your iPhone.
+5. Open Obsync and link the GitHub account that owns your private copy. Select the private repository and sync it to your phone.
+6. Open Obsidian and choose **Open folder as vault**. Select the folder that Obsync created for the private repository.
+7. In Obsidian, open **Settings → Community plugins**, turn on community plugins if prompted, and enable **Workout Logger**.
+8. Pull down from the top edge of the Obsidian screen. The configured **Workout Logger: Today** action should open the workout screen. If it does not, restart Obsidian after enabling the plugin and try again.
 
-Do not commit your workout logs to this public repository. For Git-based syncing, create a private repository for your own copy first.
+Never use this public repository as the live sync destination for workout data. Always sync your private copy.
 
-### Git setup
+## Alternative: desktop Git setup
 
-1. Create an empty private GitHub repository for your personal workout vault.
-2. Clone this starter vault on your computer:
+If you prefer to configure the vault on a computer first, create the private copy on GitHub as described above, then clone it locally. You can also clone this starter vault directly and change its remote before recording anything:
 
-   ```sh
-   git clone https://github.com/big-ponderer/obsidian-workout-logger.git MyWorkoutVault
-   cd MyWorkoutVault
-   ```
+```sh
+git clone https://github.com/big-ponderer/obsidian-workout-logger.git MyWorkoutVault
+cd MyWorkoutVault
+```
 
-3. Point the clone at your private repository and push it:
+Point the clone at your private repository and push it:
 
-   ```sh
-   git remote set-url origin https://github.com/YOUR-USERNAME/YOUR-PRIVATE-REPO.git
-   git push -u origin main
-   ```
+```sh
+git remote set-url origin https://github.com/YOUR-USERNAME/YOUR-PRIVATE-REPO.git
+git push -u origin main
+```
 
-4. In Obsidian, choose **Open folder as vault** and select `MyWorkoutVault`.
-5. Open **Settings → Community plugins**, turn on community plugins if prompted, and enable **Workout Logger**.
+Then open `MyWorkoutVault` in Obsidian, enable **Workout Logger**, and use your normal Git sync method for the phone.
 
 You can also download the repository as a ZIP and open the extracted folder as a vault. If you plan to keep records, initialize or connect that copy to a private repository before logging.
 
@@ -46,16 +49,9 @@ You can also download the repository as a ZIP and open the extracted folder as a
 
 Each session and exercise log is a Markdown file. The plugin automatically maintains links, totals, locations, machine profiles, and comparable history.
 
-## Git sync to mobile
+## Sync and use on mobile
 
-This starter vault is designed for the workflow where the vault is configured on desktop and synced to a phone with Git:
-
-1. Use your normal Git sync method, such as the Obsidian Git community plugin or Obsync on iOS, on your private repository.
-2. Make sure hidden files and the entire `.obsidian` folder are included.
-3. Pull the private vault on the phone before a workout and push after logging.
-4. Enable **Workout Logger** on the phone once if Obsidian does not activate it automatically.
-
-The included configuration preassigns **Workout Logger: Today** as the mobile pull-down Quick Action and adds **Today** and **Log exercise** to the mobile toolbar.
+For Obsync, pull the private repository before a workout and push it afterward. Make sure hidden files and the entire `.obsidian` folder are included. The included configuration preassigns **Workout Logger: Today** as the mobile pull-down Quick Action and adds **Today** and **Log exercise** to the mobile toolbar.
 
 ## Adding exercises
 

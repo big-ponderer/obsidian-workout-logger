@@ -1,0 +1,11 @@
+{
+  "newFileLocation": "folder",
+  "newFileFolderPath": "Workout Tracker/Sessions",
+  "attachmentFolderPath": "Workout Tracker/Assets",
+  "alwaysUpdateLinks": true,
+  "mobilePullAction": "workout-logger:open-todays-workout",
+  "mobileToolbarCommands": [
+    "workout-logger:open-todays-workout",
+    "workout-logger:log-exercise"
+  ]
+}

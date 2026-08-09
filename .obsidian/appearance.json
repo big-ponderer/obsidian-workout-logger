@@ -1,0 +1,8 @@
+{
+  "theme": "system",
+  "accentColor": "",
+  "translucency": true,
+  "enabledCssSnippets": [
+    "workout-tracker"
+  ]
+}

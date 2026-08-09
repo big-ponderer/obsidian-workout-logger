@@ -1,0 +1,134 @@
+/* Scoped presentation for the Workout Logger starter vault. */
+.workout-dashboard,
+.workout-session,
+.exercise-note,
+.exercise-log,
+.muscle-group-note,
+.equipment-note {
+  --workout-accent: #dc6b5f;
+  --workout-accent-soft: color-mix(in srgb, var(--workout-accent) 16%, transparent);
+  --workout-panel: color-mix(in srgb, var(--background-secondary) 82%, transparent);
+}
+
+.workout-dashboard .markdown-preview-sizer,
+.workout-dashboard .cm-sizer {
+  max-width: 1280px;
+}
+
+.workout-dashboard .internal-embed.image-embed[src*="workout-cover.gif"] {
+  display: block;
+  margin: 0 0 2.2rem;
+  overflow: hidden;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 18px;
+  box-shadow: 0 18px 50px rgb(0 0 0 / 22%);
+}
+
+.workout-dashboard .internal-embed.image-embed[src*="workout-cover.gif"] img {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+}
+
+.workout-dashboard h1 {
+  margin-bottom: 0.15rem;
+  font-size: clamp(2.35rem, 6vw, 4.5rem);
+  letter-spacing: -0.055em;
+}
+
+.workout-dashboard h2,
+.workout-session h2,
+.exercise-note h2,
+.muscle-group-note h2 {
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--background-modifier-border);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* The logger is the friendly UI; keep implementation metadata out of the way. */
+.exercise-note .metadata-container,
+.exercise-log .metadata-container {
+  display: none;
+}
+
+.workout-kicker {
+  margin-bottom: 1.8rem;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: 700;
+  letter-spacing: 0.24em;
+}
+
+.callout[data-callout="workout"] {
+  --callout-color: 220, 107, 95;
+  --callout-icon: lucide-dumbbell;
+  margin: 1.3rem 0 2rem;
+  border: 1px solid color-mix(in srgb, var(--workout-accent) 38%, var(--background-modifier-border));
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--workout-accent-soft), var(--workout-panel));
+}
+
+.workout-dashboard .bases-embed,
+.workout-session .bases-embed,
+.exercise-note .bases-embed {
+  margin: 1rem 0 2.5rem;
+  overflow: hidden;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 16px;
+  background: var(--workout-panel);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 10%);
+}
+
+.workout-dashboard .bases-cards-item {
+  border-radius: 13px;
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+
+.workout-dashboard .bases-cards-item:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--workout-accent) 55%, var(--background-modifier-border));
+}
+
+.workout-session table,
+.exercise-note table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+}
+
+.workout-session th,
+.exercise-note th {
+  position: sticky;
+  top: 0;
+  background: var(--background-secondary);
+}
+
+.workout-session tr:hover td,
+.exercise-note tr:hover td {
+  background: var(--workout-accent-soft);
+}
+
+.muscle-group-note .internal-embed.image-embed img {
+  display: block;
+  width: min(100%, 520px);
+  max-height: 340px;
+  margin: 0 auto 1.5rem;
+  object-fit: contain;
+  border-radius: 16px;
+  background: #f4f2ef;
+}
+
+@media (max-width: 700px) {
+  .workout-dashboard .internal-embed.image-embed[src*="workout-cover.gif"] {
+    margin-inline: -0.75rem;
+    border-radius: 10px;
+  }
+
+  .workout-dashboard h1 {
+    font-size: 2.45rem;
+  }
+}

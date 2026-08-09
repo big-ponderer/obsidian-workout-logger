@@ -1,0 +1,16 @@
+filters:
+  and:
+    - file.inFolder("Workout Tracker/Locations")
+    - 'record_type == "workout-location"'
+properties:
+  file.name:
+    displayName: Location
+views:
+  - type: cards
+    name: Locations
+    order:
+      - file.name
+    sort:
+      - property: file.name
+        direction: ASC
+    cardSize: 220

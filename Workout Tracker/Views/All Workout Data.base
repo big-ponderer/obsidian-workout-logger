@@ -1,0 +1,21 @@
+filters:
+  and:
+    - file.inFolder("Workout Tracker")
+    - '!record_type.isEmpty()'
+properties:
+  file.name:
+    displayName: Record
+  record_type:
+    displayName: Type
+  date:
+    displayName: Date
+views:
+  - type: table
+    name: All records
+    order:
+      - file.name
+      - record_type
+      - date
+    groupBy:
+      property: record_type
+      direction: ASC

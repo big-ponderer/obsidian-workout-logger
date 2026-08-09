@@ -1,0 +1,40 @@
+filters:
+  and:
+    - file.inFolder("Workout Tracker/Muscle Groups")
+    - 'record_type == "muscle-group"'
+properties:
+  file.name:
+    displayName: Muscle group
+  body_region:
+    displayName: Region
+  exercise_count:
+    displayName: Exercises
+  log_count:
+    displayName: Logs
+views:
+  - type: cards
+    name: Gallery
+    order:
+      - file.name
+      - body_region
+      - exercise_count
+      - log_count
+    sort:
+      - property: body_region
+        direction: ASC
+      - property: file.name
+        direction: ASC
+    image: note.image
+    imageFit: contain
+    imageAspectRatio: 1.6
+    cardSize: 230
+  - type: table
+    name: Balance
+    order:
+      - file.name
+      - body_region
+      - exercise_count
+      - log_count
+    sort:
+      - property: log_count
+        direction: DESC

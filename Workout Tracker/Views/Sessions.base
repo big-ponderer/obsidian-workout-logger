@@ -1,0 +1,60 @@
+filters:
+  and:
+    - file.inFolder("Workout Tracker/Sessions")
+    - 'record_type == "workout-session"'
+properties:
+  file.name:
+    displayName: Session
+  date:
+    displayName: Date
+  location:
+    displayName: Location
+  time:
+    displayName: Time
+  exercise_count:
+    displayName: Exercises
+  set_count:
+    displayName: Sets
+views:
+  - type: table
+    name: Recent
+    order:
+      - date
+      - file.name
+      - location
+      - time
+      - exercise_count
+      - set_count
+    sort:
+      - property: date
+        direction: DESC
+    summaries:
+      exercise_count: Sum
+      set_count: Sum
+  - type: table
+    name: By Location
+    order:
+      - date
+      - file.name
+      - location
+      - exercise_count
+      - set_count
+    groupBy:
+      property: location
+      direction: ASC
+    sort:
+      - property: date
+        direction: DESC
+  - type: table
+    name: Today and Future
+    filters:
+      and:
+        - date >= today()
+    order:
+      - date
+      - file.name
+      - location
+      - time
+    sort:
+      - property: date
+        direction: ASC

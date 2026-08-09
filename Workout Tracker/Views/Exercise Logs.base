@@ -1,0 +1,103 @@
+filters:
+  and:
+    - file.inFolder("Workout Tracker/Exercise Logs")
+    - 'record_type == "exercise-log"'
+properties:
+  file.name:
+    displayName: Log
+  date:
+    displayName: Date
+  exercise:
+    displayName: Exercise
+  session:
+    displayName: Session
+  location:
+    displayName: Location
+  machine:
+    displayName: Machine
+  sets:
+    displayName: Sets
+  reps:
+    displayName: Reps
+  weight:
+    displayName: Weight
+  volume:
+    displayName: Volume
+views:
+  - type: table
+    name: Recent
+    order:
+      - date
+      - exercise
+      - location
+      - machine
+      - sets
+      - reps
+      - weight
+      - session
+    sort:
+      - property: date
+        direction: DESC
+  - type: table
+    name: Comparable History
+    filters:
+      and:
+        - exercise == this
+    order:
+      - date
+      - location
+      - machine
+      - sets
+      - reps
+      - weight
+      - session
+    groupBy:
+      property: machine
+      direction: ASC
+    sort:
+      - property: date
+        direction: DESC
+  - type: table
+    name: This Exercise
+    filters:
+      and:
+        - exercise == this
+    order:
+      - date
+      - location
+      - machine
+      - session
+      - sets
+      - reps
+      - weight
+      - volume
+    sort:
+      - property: date
+        direction: DESC
+  - type: table
+    name: This Session
+    filters:
+      and:
+        - session == this
+    order:
+      - exercise
+      - machine
+      - sets
+      - reps
+      - weight
+      - volume
+  - type: table
+    name: Needs Review
+    filters:
+      and:
+        - '!data_quality.isEmpty()'
+    order:
+      - date
+      - exercise
+      - location
+      - machine
+      - session
+      - data_quality
+      - sets_raw
+      - reps
+      - weight

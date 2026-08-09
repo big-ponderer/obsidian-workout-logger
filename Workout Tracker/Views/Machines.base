@@ -1,0 +1,24 @@
+filters:
+  and:
+    - file.inFolder("Workout Tracker/Machines")
+    - record_type == "workout-machine"
+properties:
+  file.name:
+    displayName: Machine profile
+  machine_kind:
+    displayName: Kind
+  location:
+    displayName: Location
+views:
+  - type: table
+    name: Machine Profiles
+    groupBy:
+      property: location
+      direction: ASC
+    order:
+      - file.name
+      - machine_kind
+      - location
+    sort:
+      - property: file.name
+        direction: ASC

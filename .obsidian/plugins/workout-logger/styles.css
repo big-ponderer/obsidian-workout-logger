@@ -1,0 +1,258 @@
+.workout-logger-view {
+  --wl-accent: #dc6b5f;
+  --wl-soft: color-mix(in srgb, var(--wl-accent) 14%, transparent);
+  padding: max(18px, env(safe-area-inset-top)) 18px max(28px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+
+.workout-logger-header {
+  margin: 0 auto 14px;
+  max-width: 720px;
+}
+
+.workout-logger-kicker {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.workout-logger-title {
+  width: 100%;
+  padding: 4px 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text-normal);
+  font-size: clamp(2rem, 8vw, 3.5rem);
+  font-weight: 750;
+  letter-spacing: -0.045em;
+}
+
+.workout-logger-title:focus {
+  box-shadow: none;
+}
+
+.workout-logger-controls,
+.workout-logger-secondary,
+.workout-logger-summary,
+.workout-log-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+.workout-logger-controls select {
+  flex: 1;
+  min-height: 42px;
+}
+
+.workout-logger-primary {
+  display: block;
+  width: min(100%, 720px);
+  min-height: 54px;
+  margin: 16px auto 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.workout-logger-secondary {
+  justify-content: flex-end;
+}
+
+.workout-logger-summary {
+  justify-content: space-between;
+  margin-top: 24px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.workout-log-list {
+  display: grid;
+  gap: 10px;
+  max-width: 720px;
+  margin: 10px auto 0;
+}
+
+.workout-log-card {
+  padding: 14px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 14px;
+  background: var(--background-secondary);
+}
+
+.workout-log-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workout-log-exercise,
+.workout-log-open,
+.workout-history-record {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.workout-log-exercise {
+  height: auto;
+  padding: 0;
+  color: var(--text-normal);
+  font-size: 1.04rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.workout-log-machine {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--wl-soft);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  text-align: right;
+}
+
+.workout-log-performance {
+  margin-top: 8px;
+  color: var(--text-muted);
+}
+
+.workout-log-open {
+  height: auto;
+  padding: 0;
+  color: var(--text-accent);
+  font-size: var(--font-ui-small);
+}
+
+.workout-log-card-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.workout-logger-empty,
+.workout-history-empty,
+.workout-history-warning {
+  padding: 20px;
+  border-radius: 12px;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.workout-log-modal,
+.workout-history-modal {
+  max-width: 680px;
+}
+
+.workout-log-context {
+  margin: -8px 0 16px;
+  color: var(--text-muted);
+}
+
+.workout-history {
+  margin: 12px 0 18px;
+  padding: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+}
+
+.workout-history h3 {
+  margin: 0 0 8px;
+  font-size: var(--font-ui-medium);
+}
+
+.workout-history-row {
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--background-modifier-border-hover);
+  font-size: var(--font-ui-small);
+}
+
+.workout-history-row:last-child {
+  border-bottom: 0;
+}
+
+.workout-history-date,
+.workout-history-location {
+  color: var(--text-muted);
+}
+
+.workout-log-actions {
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.workout-log-delete {
+  margin-right: auto;
+  color: var(--text-error);
+}
+
+.workout-delete-modal {
+  max-width: 520px;
+}
+
+.workout-history-record {
+  display: grid;
+  grid-template-columns: 100px 1fr auto;
+  width: 100%;
+  height: auto;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+  text-align: left;
+}
+
+.workout-history-group {
+  margin: 14px 0;
+  padding: 4px 14px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  background: var(--background-secondary);
+}
+
+.workout-history-group h3 {
+  margin: 12px 0 5px;
+  font-size: var(--font-ui-medium);
+}
+
+.workout-history-record:hover,
+.workout-history-record:focus-visible {
+  background: var(--background-modifier-hover);
+}
+
+@media (max-width: 520px) {
+  .workout-logger-view {
+    padding-inline: 12px;
+  }
+
+  .workout-log-card-top,
+  .workout-logger-controls {
+    align-items: stretch;
+  }
+
+  .workout-log-card-top {
+    flex-direction: column;
+  }
+
+  .workout-log-machine {
+    align-self: flex-start;
+    text-align: left;
+  }
+
+  .workout-history-row,
+  .workout-history-record {
+    grid-template-columns: 82px 1fr;
+  }
+
+  .workout-history-location,
+  .workout-history-record span:last-child {
+    grid-column: 2;
+  }
+}

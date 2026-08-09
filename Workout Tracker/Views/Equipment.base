@@ -1,0 +1,20 @@
+filters:
+  and:
+    - file.inFolder("Workout Tracker/Equipment")
+    - 'record_type == "equipment"'
+properties:
+  file.name:
+    displayName: Equipment
+  exercise_count:
+    displayName: Exercises
+views:
+  - type: cards
+    name: Library
+    order:
+      - file.name
+      - exercise_count
+      - exercises
+    sort:
+      - property: file.name
+        direction: ASC
+    cardSize: 250

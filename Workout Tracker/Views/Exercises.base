@@ -1,0 +1,57 @@
+filters:
+  and:
+    - file.inFolder("Workout Tracker/Exercises")
+    - 'record_type == "exercise"'
+properties:
+  file.name:
+    displayName: Exercise
+  difficulty:
+    displayName: Difficulty
+  muscle_groups:
+    displayName: Muscle groups
+  equipment:
+    displayName: Equipment
+  machine_policy:
+    displayName: Machine policy
+  default_machine:
+    displayName: Default machine
+  log_count:
+    displayName: Logs
+  last_performed:
+    displayName: Last performed
+  max_weight_lbs:
+    displayName: Max lb
+views:
+  - type: cards
+    name: Library
+    order:
+      - file.name
+      - difficulty
+      - muscle_groups
+      - equipment
+      - machine_policy
+      - default_machine
+      - log_count
+      - last_performed
+      - max_weight_lbs
+    sort:
+      - property: last_performed
+        direction: DESC
+      - property: file.name
+        direction: ASC
+    cardSize: 250
+  - type: table
+    name: Progress
+    order:
+      - file.name
+      - muscle_groups
+      - machine_policy
+      - default_machine
+      - log_count
+      - first_performed
+      - last_performed
+      - max_weight_lbs
+      - max_weight_kg
+    sort:
+      - property: last_performed
+        direction: DESC

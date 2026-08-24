@@ -138,15 +138,19 @@ class WorkoutLoggerPlugin extends Plugin {
       },
     });
     this.addSettingTab(new WorkoutLoggerSettingTab(this.app, this));
+    this._todaySessionPromise = null;
+    this._todaySessionFile = null;
+    this._refreshTimer = null;
     this.registerEvent(
       this.app.metadataCache.on("changed", (file) => {
         this.transientFrontmatter.delete(file.path);
-        this.refreshViews();
+        this.queueRefresh();
       }),
     );
   }
 
   onunload() {
+    if (this._refreshTimer) window.clearTimeout(this._refreshTimer);
     this.app.workspace.detachLeavesOfType(VIEW_TYPE);
   }
 
@@ -165,6 +169,16 @@ class WorkoutLoggerPlugin extends Plugin {
     const text = await this.app.vault.cachedRead(file);
     const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
     return match ? parseYaml(match[1]) || {} : {};
+  }
+
+  async processFrontmatter(file, updater) {
+    let snapshot = null;
+    await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+      updater(frontmatter);
+      snapshot = JSON.parse(JSON.stringify(frontmatter));
+    });
+    if (snapshot) this.transientFrontmatter.set(file.path, snapshot);
+    return snapshot;
   }
 
   filesByType(recordType) {
@@ -215,9 +229,64 @@ class WorkoutLoggerPlugin extends Plugin {
 
   getTodaySession() {
     const today = localDate();
-    return this.filesByType("workout-session").find(
+    const remembered = this._todaySessionFile;
+    if (
+      remembered &&
+      this.app.vault.getAbstractFileByPath(remembered.path) === remembered &&
+      String(this.frontmatterFor(remembered).date || "") === today
+    ) {
+      return remembered;
+    }
+    this._todaySessionFile = null;
+    const sessions = this.filesByType("workout-session").filter(
       (file) => String(this.frontmatterFor(file).date || "") === today,
     );
+    if (!sessions.length) return null;
+    sessions.sort((a, b) => {
+      const score = (file) => {
+        const frontmatter = this.frontmatterFor(file);
+        return (
+          (Number(frontmatter.exercise_count || 0) > 0 ? 4 : 0) +
+          (Array.isArray(frontmatter.exercise_logs) && frontmatter.exercise_logs.length ? 2 : 0) +
+          (Number(frontmatter.set_count || 0) > 0 ? 1 : 0) +
+          (Number(frontmatter.tracked_reps || 0) > 0 ? 1 : 0)
+        );
+      };
+      return score(b) - score(a) || b.stat.mtime - a.stat.mtime;
+    });
+    this._todaySessionFile = sessions[0];
+    return sessions[0];
+  }
+
+  async findTodaySessionOnDisk() {
+    const today = localDate();
+    const candidates = [];
+    const prefix = `${FOLDERS.sessions}/`;
+    for (const file of this.app.vault.getMarkdownFiles()) {
+      if (!file.path.startsWith(prefix)) continue;
+      let frontmatter = this.frontmatterFor(file);
+      if (
+        String(frontmatter.record_type || "") !== "workout-session" ||
+        String(frontmatter.date || "") !== today
+      ) {
+        try {
+          const text = await this.app.vault.cachedRead(file);
+          const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+          frontmatter = match ? parseYaml(match[1]) || {} : frontmatter;
+        } catch (error) {
+          console.warn(`Could not inspect workout session ${file.path}`, error);
+        }
+      }
+      if (
+        String(frontmatter.record_type || "") === "workout-session" &&
+        String(frontmatter.date || "") === today
+      ) {
+        this.transientFrontmatter.set(file.path, frontmatter);
+        candidates.push(file);
+      }
+    }
+    if (!candidates.length) return null;
+    return this.getTodaySession() || candidates[0];
   }
 
   async latestLocation() {
@@ -250,6 +319,47 @@ class WorkoutLoggerPlugin extends Plugin {
     return label ? noteLink(`${FOLDERS.locations}/${safeName(label)}.md`, label) : "";
   }
 
+  async setSessionLocation(session, location) {
+    const next = String(location || "").trim();
+    const previous = await this.readFrontmatter(session);
+    const previousLocation = linkLabel(previous.location);
+    await this.processFrontmatter(session, (frontmatter) => {
+      if (next) frontmatter.location = this.locationLink(next);
+      else delete frontmatter.location;
+    });
+    const current = await this.app.vault.cachedRead(session);
+    const locationText = this.locationLink(next) || "—";
+    const updated = current.replace(/^> \*\*Location:\*\*.*$/m, `> **Location:** ${locationText}`);
+    if (updated !== current) await this.app.vault.modify(session, updated);
+
+    const logs = this.getLogsForSession(session);
+    const oldMachinePrefix = previousLocation ? `${previousLocation} · ` : "";
+    for (const { file, frontmatter } of logs) {
+      const oldMachine = linkLabel(frontmatter.machine);
+      let machine = oldMachine;
+      if (next && oldMachinePrefix && oldMachine.startsWith(oldMachinePrefix)) {
+        machine = `${next} · ${oldMachine.slice(oldMachinePrefix.length)}`;
+        await this.ensureReference(FOLDERS.machines, machine, "workout-machine", {
+          location: this.locationLink(next),
+        });
+      }
+      await this.processFrontmatter(file, (logFrontmatter) => {
+        if (next) logFrontmatter.location = this.locationLink(next);
+        else delete logFrontmatter.location;
+        if (machine && machine !== oldMachine) logFrontmatter.machine = this.machineLink(machine);
+      });
+      const logText = await this.app.vault.cachedRead(file);
+      const logLocationText = this.locationLink(next) || "—";
+      const logMachineText = this.machineLink(machine || AGNOSTIC);
+      const logUpdated = logText.replace(
+        /^> \*\*Location:\*\*.*$/m,
+        (line) => `> **Location:** ${logLocationText} · **Machine:** ${logMachineText}${line.endsWith("<br>") ? "<br>" : ""}`,
+      );
+      if (logUpdated !== logText) await this.app.vault.modify(file, logUpdated);
+    }
+    return next;
+  }
+
   machineLink(label) {
     return noteLink(`${FOLDERS.machines}/${safeName(label, "Machine")}.md`, label);
   }
@@ -257,35 +367,47 @@ class WorkoutLoggerPlugin extends Plugin {
   async ensureTodaySession() {
     const existing = this.getTodaySession();
     if (existing) return existing;
-    const date = localDate();
-    const title = this.settings.defaultSessionName || "Workout";
-    const location = this.settings.lastLocation || (await this.latestLocation());
-    if (location) await this.ensureReference(FOLDERS.locations, location, "workout-location");
-    const path = await this.uniquePath(FOLDERS.sessions, `${date} - ${title}`);
-    const properties = {
-      title,
-      type: "single",
-      record_type: "workout-session",
-      date,
-      allDay: true,
-      location: this.locationLink(location),
-      exercise_count: 0,
-      set_count: 0,
-      tracked_reps: 0,
-      exercises: [],
-      exercise_logs: [],
-      tags: ["workout/session"],
-      cssclasses: ["workout-session"],
-    };
-    const body = `${makeFrontmatter(properties)}# ${title}\n\n> [!workout] ${date}\n> **Location:** ${properties.location || "—"}\n\n## Exercises\n\nUse **Log exercise** in Workout Logger.\n`;
-    const file = await this.app.vault.create(path, body);
-    this.transientFrontmatter.set(file.path, properties);
-    if (location && location !== this.settings.lastLocation) {
-      this.settings.lastLocation = location;
-      await this.saveSettings();
+    if (this._todaySessionPromise) return this._todaySessionPromise;
+    this._todaySessionPromise = (async () => {
+      const current = this.getTodaySession() || (await this.findTodaySessionOnDisk());
+      if (current) return current;
+
+      const date = localDate();
+      const title = this.settings.defaultSessionName || "Workout";
+      const location = this.settings.lastLocation || (await this.latestLocation());
+      if (location) await this.ensureReference(FOLDERS.locations, location, "workout-location");
+      const path = await this.uniquePath(FOLDERS.sessions, `${date} - ${title}`);
+      const properties = {
+        title,
+        type: "single",
+        record_type: "workout-session",
+        date,
+        allDay: true,
+        location: this.locationLink(location),
+        exercise_count: 0,
+        set_count: 0,
+        tracked_reps: 0,
+        exercises: [],
+        exercise_logs: [],
+        tags: ["workout/session"],
+        cssclasses: ["workout-session"],
+      };
+      const body = `${makeFrontmatter(properties)}# ${title}\n\n> [!workout] ${date}\n> **Location:** ${properties.location || "—"}\n\n## Exercises\n\nUse **Log exercise** in Workout Logger.\n`;
+      const file = await this.app.vault.create(path, body);
+      this.transientFrontmatter.set(file.path, properties);
+      this._todaySessionFile = file;
+      if (location && location !== this.settings.lastLocation) {
+        this.settings.lastLocation = location;
+        await this.saveSettings();
+      }
+      new Notice(`Started ${title} for ${date}`);
+      return file;
+    })();
+    try {
+      return await this._todaySessionPromise;
+    } finally {
+      this._todaySessionPromise = null;
     }
-    new Notice(`Started ${title} for ${date}`);
-    return file;
   }
 
   async openToday() {
@@ -300,6 +422,14 @@ class WorkoutLoggerPlugin extends Plugin {
     for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) {
       if (leaf.view instanceof TodayWorkoutView) leaf.view.render();
     }
+  }
+
+  queueRefresh() {
+    if (this._refreshTimer) window.clearTimeout(this._refreshTimer);
+    this._refreshTimer = window.setTimeout(() => {
+      this._refreshTimer = null;
+      this.refreshViews();
+    }, 400);
   }
 
   fileFromLink(value) {
@@ -344,7 +474,7 @@ class WorkoutLoggerPlugin extends Plugin {
       setCount += Number(frontmatter.sets || frontmatter.sets_raw || 0) || 0;
       trackedReps += Number(frontmatter.total_reps || 0) || 0;
     }
-    await this.app.fileManager.processFrontMatter(session, (frontmatter) => {
+    await this.processFrontmatter(session, (frontmatter) => {
       delete frontmatter.completed;
       frontmatter.exercises = exercises;
       frontmatter.exercise_logs = logs.map(({ file }) => noteLink(file.path, "log"));
@@ -360,7 +490,7 @@ class WorkoutLoggerPlugin extends Plugin {
       .map(({ frontmatter }) => String(frontmatter.date || ""))
       .filter(Boolean)
       .sort();
-    await this.app.fileManager.processFrontMatter(exercise, (frontmatter) => {
+    await this.processFrontmatter(exercise, (frontmatter) => {
       frontmatter.log_count = history.length;
       if (dates.length) {
         frontmatter.first_performed = dates[0];
@@ -447,7 +577,7 @@ class WorkoutLoggerPlugin extends Plugin {
     const file = await this.app.vault.create(path, body);
     this.transientFrontmatter.set(file.path, properties);
 
-    await this.app.fileManager.processFrontMatter(session, (frontmatter) => {
+    await this.processFrontmatter(session, (frontmatter) => {
       delete frontmatter.completed;
       if (location) frontmatter.location = this.locationLink(location);
     });
@@ -459,7 +589,7 @@ class WorkoutLoggerPlugin extends Plugin {
       await this.saveSettings();
     }
     new Notice(`Logged ${exerciseTitle}`);
-    this.refreshViews();
+    this.queueRefresh();
     return file;
   }
 
@@ -515,7 +645,7 @@ class WorkoutLoggerPlugin extends Plugin {
       await this.saveSettings();
     }
     new Notice(`Updated ${exerciseTitle}`);
-    this.refreshViews();
+    this.queueRefresh();
     return file;
   }
 
@@ -527,7 +657,7 @@ class WorkoutLoggerPlugin extends Plugin {
     await this.refreshSessionStats(session, file.path);
     await this.refreshExerciseStats(linkedExercise, file.path);
     new Notice(`Deleted ${linkedExercise.basename} log`);
-    this.refreshViews();
+    this.queueRefresh();
   }
 }
 
@@ -570,7 +700,7 @@ class TodayWorkoutView extends ItemView {
     titleInput.value = String(frontmatter.title || "Workout");
     titleInput.addEventListener("change", async () => {
       const title = titleInput.value.trim() || "Workout";
-      await this.app.fileManager.processFrontMatter(session, (fm) => (fm.title = title));
+      await this.plugin.processFrontmatter(session, (fm) => (fm.title = title));
     });
 
     const controls = root.createDiv({ cls: "workout-logger-controls" });
@@ -582,13 +712,10 @@ class TodayWorkoutView extends ItemView {
     locationSelect.addEventListener("change", async () => {
       const next = locationSelect.value;
       if (next) await this.plugin.ensureReference(FOLDERS.locations, next, "workout-location");
-      await this.app.fileManager.processFrontMatter(session, (fm) => {
-        if (next) fm.location = this.plugin.locationLink(next);
-        else delete fm.location;
-      });
+      await this.plugin.setSessionLocation(session, next);
       this.plugin.settings.lastLocation = next;
       await this.plugin.saveSettings();
-      this.render();
+      await this.render();
     });
 
     const addLocation = controls.createEl("button", { cls: "clickable-icon", text: "+ Location" });
@@ -936,9 +1063,7 @@ class NewLocationModal extends Modal {
     button.addEventListener("click", async () => {
       if (!value) return;
       await this.plugin.ensureReference(FOLDERS.locations, value, "workout-location");
-      await this.app.fileManager.processFrontMatter(this.session, (fm) => {
-        fm.location = this.plugin.locationLink(value);
-      });
+      await this.plugin.setSessionLocation(this.session, value);
       this.plugin.settings.lastLocation = value;
       await this.plugin.saveSettings();
       this.close();

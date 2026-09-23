@@ -55,7 +55,7 @@ For Obsync, pull the private repository before a workout and push it afterward. 
 
 ## Adding exercises
 
-Copy `Workout Tracker/Templates/New Exercise.md` into `Workout Tracker/Exercises`, set the exercise title, and keep `record_type: "exercise"`. Optional `equipment`, `muscle_groups`, and `machine_policy` properties improve the library and machine-history behavior.
+From **Workout Logger: Today**, tap **Add new exercise**, or run **Add exercise** from the command palette. Enter the exercise name and any optional muscle groups, equipment, or machine settings. **Save + log today** adds it to the exercise library and opens the set logger for the current workout. The existing `Workout Tracker/Templates/New Exercise.md` template remains available for manual note creation.
 
 ## Updating the plugin
 

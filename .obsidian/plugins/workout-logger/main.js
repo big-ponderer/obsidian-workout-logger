@@ -137,6 +137,14 @@ class WorkoutLoggerPlugin extends Plugin {
         new ExercisePicker(this, session).open();
       },
     });
+    this.addCommand({
+      id: "add-exercise",
+      name: "Add exercise",
+      callback: async () => {
+        const session = await this.ensureTodaySession();
+        new NewExerciseModal(this, session).open();
+      },
+    });
     this.addSettingTab(new WorkoutLoggerSettingTab(this.app, this));
     this._todaySessionPromise = null;
     this._todaySessionFile = null;
@@ -225,6 +233,73 @@ class WorkoutLoggerPlugin extends Plugin {
     return this.filesByType("exercise")
       .map((file) => ({ file, frontmatter: this.frontmatterFor(file) }))
       .sort((a, b) => String(a.frontmatter.title || a.file.basename).localeCompare(String(b.frontmatter.title || b.file.basename)));
+  }
+
+  getMuscleGroups() {
+    const folder = ROOT + "/Muscle Groups/";
+    return this.app.vault
+      .getMarkdownFiles()
+      .filter((file) => file.path.startsWith(folder))
+      .map((file) => ({ file, title: this.frontmatterFor(file).title || file.basename }))
+      .sort((a, b) => String(a.title).localeCompare(String(b.title)));
+  }
+
+  async createExercise(form) {
+    const title = String(form.title || "").trim().replace(/\s+/g, " ");
+    if (!title) throw new Error("Enter an exercise name.");
+    const existing = this.getExercises().find(
+      ({ file, frontmatter }) =>
+        String(frontmatter.title || file.basename).toLocaleLowerCase() === title.toLocaleLowerCase(),
+    );
+    if (existing) throw new Error("An exercise with that name already exists.");
+
+    const knownMuscleGroups = this.getMuscleGroups();
+    const muscleGroups = String(form.muscleGroups || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .map((name) => {
+        const match = knownMuscleGroups.find(
+          (item) => String(item.title).toLocaleLowerCase() === name.toLocaleLowerCase(),
+        );
+        return match ? noteLink(match.file.path, match.title) : name;
+      });
+    const equipment = String(form.equipment || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const policies = ["agnostic", "machine-specific", "location-specific"];
+    const machinePolicy = policies.includes(form.machinePolicy) ? form.machinePolicy : "agnostic";
+    const defaultMachine = String(form.defaultMachine || "").trim();
+    const properties = {
+      title,
+      record_type: "exercise",
+      difficulty: "",
+      equipment,
+      muscle_groups: muscleGroups,
+      tags: ["workout/exercise"],
+      cssclasses: ["exercise-note"],
+      machine_policy: machinePolicy,
+    };
+    if (defaultMachine) {
+      properties.default_machine = this.machineLink(defaultMachine);
+      await this.ensureReference(FOLDERS.machines, defaultMachine, "workout-machine", {
+        machine_kind: machinePolicy,
+      });
+    }
+
+    const path = await this.uniquePath(FOLDERS.exercises, title);
+    const body =
+      makeFrontmatter(properties) +
+      "# " + title + "\n\n" +
+      "Use **Workout Logger: Log exercise** to record this exercise.\n\n" +
+      "## Training history\n\n" +
+      "![[Workout Tracker/Views/Exercise Logs.base#This Exercise]]\n";
+    const file = await this.app.vault.create(path, body);
+    this.transientFrontmatter.set(file.path, properties);
+    new Notice("Added " + title);
+    this.queueRefresh();
+    return file;
   }
 
   getTodaySession() {
@@ -724,6 +799,12 @@ class TodayWorkoutView extends ItemView {
     const primary = root.createEl("button", { cls: "mod-cta workout-logger-primary", text: "+ Log exercise" });
     primary.addEventListener("click", () => new ExercisePicker(this.plugin, session).open());
 
+    const addExercise = root.createEl("button", {
+      cls: "workout-logger-add-exercise",
+      text: "+ Add new exercise",
+    });
+    addExercise.addEventListener("click", () => new NewExerciseModal(this.plugin, session).open());
+
     const secondary = root.createDiv({ cls: "workout-logger-secondary" });
     const openNote = secondary.createEl("button", { text: "Open session note" });
     openNote.addEventListener("click", () => this.plugin.openFile(session));
@@ -788,6 +869,98 @@ class ExercisePicker extends FuzzySuggestModal {
   onChooseItem(item) {
     if (this.onChoose) this.onChoose(item);
     else new LogExerciseModal(this.plugin, this.session, item.file).open();
+  }
+}
+
+class NewExerciseModal extends Modal {
+  constructor(plugin, session) {
+    super(plugin.app);
+    this.plugin = plugin;
+    this.session = session;
+    this.saving = false;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("workout-log-modal");
+    contentEl.createEl("h2", { text: "Add exercise" });
+    contentEl.createDiv({
+      cls: "workout-log-context",
+      text: "Create an exercise for your library, then log it in today’s workout.",
+    });
+
+    let title = "";
+    let muscleGroups = "";
+    let equipment = "";
+    let machinePolicy = "agnostic";
+    let defaultMachine = "";
+    let titleInput;
+
+    new Setting(contentEl).setName("Exercise name").addText((text) => {
+      titleInput = text.inputEl;
+      text.setPlaceholder("e.g. Tricep Machine Press").onChange((value) => (title = value));
+    });
+    new Setting(contentEl)
+      .setName("Muscle groups")
+      .setDesc("Comma-separated. Known groups such as Triceps link automatically.")
+      .addText((text) => {
+        text.setPlaceholder("e.g. Triceps").onChange((value) => (muscleGroups = value));
+        const listId = "workout-muscle-groups-" + Date.now();
+        text.inputEl.setAttr("list", listId);
+        const list = contentEl.createEl("datalist", { attr: { id: listId } });
+        for (const group of this.plugin.getMuscleGroups()) {
+          list.createEl("option", { attr: { value: group.title } });
+        }
+      });
+    new Setting(contentEl)
+      .setName("Equipment")
+      .setDesc("Optional, comma-separated.")
+      .addText((text) => text.onChange((value) => (equipment = value)));
+    new Setting(contentEl)
+      .setName("Machine policy")
+      .setDesc("Choose whether history follows a machine or a location.")
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption("agnostic", "Any machine")
+          .addOption("machine-specific", "Machine-specific")
+          .addOption("location-specific", "Location-specific")
+          .setValue(machinePolicy)
+          .onChange((value) => (machinePolicy = value));
+      });
+    new Setting(contentEl)
+      .setName("Default machine")
+      .setDesc("Optional machine profile for this exercise.")
+      .addText((text) => text.onChange((value) => (defaultMachine = value)));
+
+    const actions = contentEl.createDiv({ cls: "workout-log-actions" });
+    const save = actions.createEl("button", { cls: "mod-cta", text: "Save exercise" });
+    const saveAndLog = actions.createEl("button", { text: "Save + log today" });
+    const submit = async (logToday) => {
+      if (this.saving) return;
+      this.saving = true;
+      save.disabled = true;
+      saveAndLog.disabled = true;
+      try {
+        const exercise = await this.plugin.createExercise({
+          title,
+          muscleGroups,
+          equipment,
+          machinePolicy,
+          defaultMachine,
+        });
+        this.close();
+        if (logToday) new LogExerciseModal(this.plugin, this.session, exercise).open();
+      } catch (error) {
+        console.error(error);
+        new Notice("Could not add exercise: " + (error.message || error));
+        this.saving = false;
+        save.disabled = false;
+        saveAndLog.disabled = false;
+      }
+    };
+    save.addEventListener("click", () => submit(false));
+    saveAndLog.addEventListener("click", () => submit(true));
+    window.setTimeout(() => titleInput?.focus(), 80);
   }
 }
 

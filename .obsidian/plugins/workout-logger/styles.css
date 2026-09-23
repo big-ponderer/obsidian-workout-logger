@@ -57,6 +57,13 @@
   font-weight: 700;
 }
 
+.workout-logger-add-exercise {
+  display: block;
+  width: min(100%, 720px);
+  min-height: 42px;
+  margin: 0 auto;
+}
+
 .workout-logger-secondary {
   justify-content: flex-end;
 }

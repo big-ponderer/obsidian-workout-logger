@@ -1,7 +1,7 @@
 {
   "id": "workout-logger",
   "name": "Workout Logger",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "minAppVersion": "1.6.0",
   "description": "One-tap, machine-aware workout logging backed by local Markdown notes.",
   "author": "Leo Zhu",
